@@ -6,6 +6,7 @@ __pycache__/
 /data
 .DS_Store
 .ipynb_checkpoints
+innovation-mapping.config
 
 # C extensions
 *.so
