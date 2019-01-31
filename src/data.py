@@ -1,3 +1,4 @@
+import re
 import sys
 import pandas as pd
 from data_getters.core import get_engine
@@ -25,8 +26,12 @@ def read_data(config_file):
 
     orgs = concat_chunks(pd.read_sql_table('crunchbase_organizations', con,
                                            chunksize=1000))
-    # cats = concat_chunks(pd.read_sql_table('crunchbase_category_groups', con,
-    #                                        chunksize=1000))
+    cats = concat_chunks(
+                        pd.read_sql_table(
+                                         'crunchbase_organizations_categories',
+                                         con, chunksize=1000))
+    cat_groups = concat_chunks(pd.read_sql_table('crunchbase_category_groups',
+                                                 con, chunksize=1000))
     geo = concat_chunks(pd.read_sql_table('geographic_data', con,
                                           chunksize=1000))
     degrees = concat_chunks(pd.read_sql_table('crunchbase_degrees', con,
@@ -35,7 +40,27 @@ def read_data(config_file):
                                            chunksize=1000))
     people = concat_chunks(pd.read_sql_table('crunchbase_people', con,
                                              chunksize=1000))
-    return orgs, geo, degrees, jobs, people
+    return orgs, cats, cat_groups, geo, degrees, jobs, people
+
+
+def company_size(val):
+    regex = re.compile(r'\d+')
+    if isinstance(val, str):
+        values = [int(v) for v in re.findall(regex, val)]
+    else:
+        return val
+    if val == 'unknown':
+        return np.nan
+    elif all(v > 250 for v in values):
+        return 'Large'
+    elif values[0] > 50 and values[1] <= 250:
+        return 'Medium'
+    elif values[0] > 10 and values[1] <= 50:
+        return 'Small'
+    elif values[1] <= 10:
+        return 'Micro'
+    else:
+        return val
 
 
 def change_degree_type(val):
@@ -59,7 +84,7 @@ def change_degree_type(val):
 
 
 def prepare_data():
-    orgs, geo, degrees, jobs, people = read_data(sys.argv[1])
+    orgs, cats, cat_groups, geo, degrees, jobs, people = read_data(sys.argv[1])
     with open(sys.argv[2], 'rb') as h:
         org_ids = pickle.load(h)
 
@@ -73,18 +98,27 @@ def prepare_data():
                                                 left_on='id',
                                                 right_on='org_id')
 
+    categories = cats.merge(cat_groups, left_on='category_name',
+                            right_on='category_name')
+
+    oj = oj.merge(categories[['organization_id', 'category_group_list']],
+                  left_on='id', right_on='organization_id')
+
     ojp = oj.merge(people[['id', 'first_name', 'last_name', 'gender']],
                    left_on='person_id', right_on='id')
 
     ojpd = ojp.merge(degrees[['person_id', 'degree_type', 'degree_id']],
                      how='left', left_on='id_y', right_on='person_id')
-    ojpd.drop(['person_id_x', 'person_id_y', 'primary_role'],
+    ojpd.drop(['person_id_x', 'person_id_y', 'primary_role',
+               'organization_id'],
               axis=1, inplace=True)
     ojpd.rename(index=str, inplace=True, columns={'id_x': 'org_id',
                                                   'id_y': 'person_id'})
 
     ojpd.degree_type = ojpd.degree_type.apply(change_degree_type)
+    ojpd.employee_count = ojpd.employee_count.apply(company_size)
 
+    ojpd.to_csv('../data/processed/ojpd.csv')
     print(ojpd.shape)
 
 
