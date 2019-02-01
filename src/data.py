@@ -1,6 +1,7 @@
 import re
 import sys
 import pandas as pd
+import ethnicolr
 from data_getters.core import get_engine
 import pickle
 import numpy as np
@@ -88,7 +89,7 @@ def prepare_data():
     with open(sys.argv[2], 'rb') as h:
         org_ids = pickle.load(h)
 
-    orgs = orgs[(orgs.id.isin(org_ids)) & (orgs.primary_role == 'company')]
+    orgs = orgs[(orgs.id.isin(org_ids))]
 
     oj = orgs[['id', 'funding_total_usd', 'founded_on', 'city', 'country',
                'employee_count', 'primary_role']].merge(
@@ -106,11 +107,13 @@ def prepare_data():
 
     ojp = oj.merge(people[['id', 'first_name', 'last_name', 'gender']],
                    left_on='person_id', right_on='id')
-
-    ojpd = ojp.merge(degrees[['person_id', 'degree_type', 'degree_id']],
+    # Predict ethnicity given first and last name
+    ojp = ethnicolr.pred_wiki_name(df=ojp, lname_col='last_name',
+                                   fname_col='first_name')
+    ojpd = ojp.merge(degrees[['person_id', 'degree_type', 'degree_id',
+                              'institution_id']],
                      how='left', left_on='id_y', right_on='person_id')
-    ojpd.drop(['person_id_x', 'person_id_y', 'primary_role',
-               'organization_id'],
+    ojpd.drop(['person_id_x', 'person_id_y', 'organization_id'],
               axis=1, inplace=True)
     ojpd.rename(index=str, inplace=True, columns={'id_x': 'org_id',
                                                   'id_y': 'person_id'})

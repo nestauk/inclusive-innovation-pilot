@@ -23,7 +23,9 @@ class Indicators():
                 and reindexed based on the number of women/men in the cities.
 
         """
-        df = self.data[self.data.is_current == 1].drop_duplicates('person_id')
+        df = self.data[(self.data.is_current == 1)
+                       & (self.data.primary_role == 'company')] \
+                 .drop_duplicates('person_id')
         city_gender_pop = df.groupby(list(args)).count()['person_id']
         city_pop = df.groupby(args[0]).count()['person_id']
         idx = city_pop.where(city_pop > thresh).dropna() \
@@ -43,10 +45,38 @@ class Indicators():
             (:obj:`pandas.DataFrame`): A DataFrame grouped by the args.
 
         """
-        return self.data \
+        return self.data[self.data.primary_role == 'company'] \
                    .drop_duplicates('person_id') \
                    .groupby(list(args)) \
                    .count()['person_id']
+
+    def home_study(self):
+        home_study = self.data[(self.data.primary_role == 'university')
+                               & (self.data.org_id
+                                      .isin(self.data.institution_id.dropna()
+                                                     .unique()))] \
+                                   .drop_duplicates('person_id').shape[0]
+        all_universities = self.data[self.data.primary_role == 'university'] \
+                               .unique().shape[0]
+        return home_study / all_universities
+
+
+def lieberson_index(d):
+    """Measure Lieberson's Aw diversity within a population. Aw receives a set
+        of variables V with p categories and uses the proportions Yk in each
+        category to measure the diversity of the set.
+
+    Args:
+        d (:obj:`dict`): d.keys() contains the variables V. d.values() contains
+            lists with the proportions of each category for every variable.
+
+    Return:
+        aw (:obj:`float`): Lieberson's Index of diversity.
+
+    """
+    yk = sum([sum([v**2 for v in vals]) for vals in d.values()])
+    aw = 1 - yk / len(d)
+    return aw
 
 
 def main():
@@ -70,12 +100,14 @@ def main():
     print('CITY -- JOB TYPE -- GENDER')
     role_comp_div = indicators.city_role_company('city', 'job_type', 'gender')
     print(role_comp_div)
+    print()
 
     print('CITY -- CATEGORY_GROUP_LIST -- GENDER')
     cat_comp_div = indicators.city_role_company('city',
                                                 'category_group_list',
                                                 'gender')
     print(cat_comp_div)
+    print()
 
 
 if __name__ == '__main__':
