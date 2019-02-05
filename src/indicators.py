@@ -60,13 +60,28 @@ class Indicators():
         all_universities = df.person_id.unique().shape[0]
         return (local_uni / all_universities) * 100
 
-    def lieberson_format(self, cols):
-        """Format data for Lieberson index."""
-        d = {}
+    def lieberson_format(self, cols, country_level=False, city_level=False,
+                         country=None):
+        """Format data for Lieberson index.
+
+        TODO: Country level.
+
+        """
         df = self.data.drop_duplicates('person_id')
-        for col in cols:
-            d[col] = list(df[col].value_counts() / df.shape[0])
-        return d
+
+        if city_level and country is not None:
+            dfs = [df[df.city == city] for city in df.city.unique()]
+
+        # if country_level:
+        #     df = df[df.country == country]
+
+        city_level_format = {}
+        for df in dfs:
+            d = {}
+            for col in cols:
+                d[col] = list(df[col].value_counts() / df.shape[0])
+            city_level_format[df['city'].unique()[0]] = d
+        return city_level_format
 
     def lieberson_index(self, d):
         """Measure Lieberson's Aw diversity within a population. Aw receives a
@@ -138,7 +153,7 @@ def main():
     print('LIEBERSON INDEX')
     print(indicators.lieberson_index(
                                      indicators.lieberson_format(
-                                        ['gender', 'race'])
+                                        ['gender', 'race'], 'United Kingdom')
                                         ))
     print()
 
