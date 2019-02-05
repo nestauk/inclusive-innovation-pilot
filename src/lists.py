@@ -34,3 +34,14 @@ mba = [
  ]
 
 judge = ['J.D.', 'Juris Doctor', 'J.D']
+
+ethnicities = [
+ 'Asian,GreaterEastAsian,EastAsian', 'Asian,GreaterEastAsian,Japanese',
+ 'Asian,IndianSubContinent', 'GreaterAfrican,Africans',
+ 'GreaterAfrican,Muslim', 'GreaterEuropean,British',
+ 'GreaterEuropean,EastEuropean', 'GreaterEuropean,Jewish',
+ 'GreaterEuropean,WestEuropean,French',
+ 'GreaterEuropean,WestEuropean,Germanic',
+ 'GreaterEuropean,WestEuropean,Hispanic',
+ 'GreaterEuropean,WestEuropean,Italian', 'GreaterEuropean,WestEuropean,Nordic'
+ ]

@@ -50,33 +50,55 @@ class Indicators():
                    .groupby(list(args)) \
                    .count()['person_id']
 
-    def home_study(self):
-        home_study = self.data[(self.data.primary_role == 'university')
-                               & (self.data.org_id
-                                      .isin(self.data.institution_id.dropna()
-                                                     .unique()))] \
-                                   .drop_duplicates('person_id').shape[0]
-        all_universities = self.data[self.data.primary_role == 'university'] \
-                               .unique().shape[0]
-        return home_study / all_universities
+    def home_study(self, country):
+        df = self.data[self.data.country == country]
+        local_uni = df[df.institution_id
+                         .isin(set(df.org_id)
+                               & set(df.institution_id))].person_id \
+                                                         .unique().shape[0]
 
+        all_universities = df.person_id.unique().shape[0]
+        return (local_uni / all_universities) * 100
 
-def lieberson_index(d):
-    """Measure Lieberson's Aw diversity within a population. Aw receives a set
-        of variables V with p categories and uses the proportions Yk in each
-        category to measure the diversity of the set.
+    def lieberson_format(self, cols):
+        """Format data for Lieberson index."""
+        d = {}
+        df = self.data.drop_duplicates('person_id')
+        for col in cols:
+            d[col] = list(df[col].value_counts() / df.shape[0])
+        return d
 
-    Args:
-        d (:obj:`dict`): d.keys() contains the variables V. d.values() contains
-            lists with the proportions of each category for every variable.
+    def lieberson_index(self, d):
+        """Measure Lieberson's Aw diversity within a population. Aw receives a
+        set of variables V with p categories and uses the proportions Yk in
+        each category to measure the diversity of the set.
+        Example:
+        d = {
+         'a': [.06, .4, .44, .1],
+         'b': [.39, .39, .22],
+         'c': [.44, .56],
+         'd': [.62, .38],
+         'f': [.39, .61],
+         'e': [.04, .45, .51]
+        }
 
-    Return:
-        aw (:obj:`float`): Lieberson's Index of diversity.
+        Paper:
+        Sullivan, John L. "Political Correlates of Social, Economic, and
+        Religious Diversity in the American States." The Journal of Politics
+        35, no. 1 (1973): 70-84. http://www.jstor.org/stable/2129038.
 
-    """
-    yk = sum([sum([v**2 for v in vals]) for vals in d.values()])
-    aw = 1 - yk / len(d)
-    return aw
+        Args:
+            d (:obj:`dict`): d.keys() contains the variables V. d.values()
+                contains lists with the proportions of each category for every
+                variable.
+
+        Return:
+            aw (:obj:`float`): Lieberson's Index of diversity.
+
+        """
+        yk = sum([sum([v**2 for v in vals]) for vals in d.values()])
+        aw = 1 - yk / len(d)
+        return aw
 
 
 def main():
@@ -107,6 +129,17 @@ def main():
                                                 'category_group_list',
                                                 'gender')
     print(cat_comp_div)
+    print()
+
+    print('LOCAL STUDENTS')
+    print(indicators.home_study('United Kingdom'))
+    print()
+
+    print('LIEBERSON INDEX')
+    print(indicators.lieberson_index(
+                                     indicators.lieberson_format(
+                                        ['gender', 'race'])
+                                        ))
     print()
 
 

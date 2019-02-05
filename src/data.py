@@ -1,11 +1,13 @@
 import re
 import sys
+import pickle
+
+import numpy as np
 import pandas as pd
+
 import ethnicolr
 from data_getters.core import get_engine
-import pickle
-import numpy as np
-from lists import postgrad, undergrad, phil, mba, judge
+from lists import postgrad, undergrad, phil, mba, judge, ethnicities
 
 
 def concat_chunks(chunks):
@@ -84,6 +86,13 @@ def change_degree_type(val):
         return val
 
 
+def bin_values(arr):
+    low_values_flags = arr < np.max(arr)
+    arr[low_values_flags] = 0
+    arr[~low_values_flags] = 1
+    return arr
+
+
 def prepare_data():
     orgs, cats, cat_groups, geo, degrees, jobs, people = read_data(sys.argv[1])
     with open(sys.argv[2], 'rb') as h:
@@ -107,9 +116,17 @@ def prepare_data():
 
     ojp = oj.merge(people[['id', 'first_name', 'last_name', 'gender']],
                    left_on='person_id', right_on='id')
+
+    ojp.gender = ojp.gender.apply(lambda x: x if x != 'not_provided'
+                                  else np.nan)
     # Predict ethnicity given first and last name
     ojp = ethnicolr.pred_wiki_name(df=ojp, lname_col='last_name',
                                    fname_col='first_name')
+    ojp.drop(ethnicities, axis=1, inplace=True)
+    # # Binarize ethnicities.
+    # for idx, _ in ojp.iterrows():
+    #     ojp.loc[idx, ethnicities] = bin_values(ojp.loc[idx, ethnicities])
+
     ojpd = ojp.merge(degrees[['person_id', 'degree_type', 'degree_id',
                               'institution_id']],
                      how='left', left_on='id_y', right_on='person_id')
@@ -121,7 +138,7 @@ def prepare_data():
     ojpd.degree_type = ojpd.degree_type.apply(change_degree_type)
     ojpd.employee_count = ojpd.employee_count.apply(company_size)
 
-    ojpd.to_csv('../data/processed/ojpd.csv')
+    ojpd.to_csv('../data/processed/ojpd_eu.csv', index=False)
     print(ojpd.shape)
 
 
