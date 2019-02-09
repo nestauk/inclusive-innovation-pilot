@@ -7,7 +7,7 @@ class Indicators():
     def __init__(self, data):
         self.data = data
 
-    def people_diversity(self, *args, thresh=25):
+    def people_diversity(self, *args, thresh=25, country_level=None):
         """Find the gender / ethnic diversity of the people that are currently
         working in an area.
 
@@ -23,6 +23,12 @@ class Indicators():
                 and reindexed based on the number of women/men in the cities.
 
         """
+        # if country_level:
+        #     frames = []
+        #     for country in self.data.value_counts().index():
+        #
+
+
         df = self.data[(self.data.is_current == 1)
                        & (self.data.primary_role == 'company')] \
                  .drop_duplicates('person_id')
@@ -62,26 +68,29 @@ class Indicators():
 
     def lieberson_format(self, cols, country_level=False, city_level=False,
                          country=None):
-        """Format data for Lieberson index.
-
-        TODO: Country level.
-
-        """
+        """Format data for Lieberson index."""
         df = self.data.drop_duplicates('person_id')
+        if country_level:
+            dfs = [df[df.country == country]
+                   for country in df.country.unique()]
+            country_level_format = {}
+            for df in dfs:
+                d = {}
+                for col in cols:
+                    d[col] = list(df[col].value_counts() / df.shape[0])
+                country_level_format[df['country'].unique()[0]] = d
+            return country_level_format
 
         if city_level and country is not None:
-            dfs = [df[df.city == city] for city in df.city.unique()]
-
-        # if country_level:
-        #     df = df[df.country == country]
-
-        city_level_format = {}
-        for df in dfs:
-            d = {}
-            for col in cols:
-                d[col] = list(df[col].value_counts() / df.shape[0])
-            city_level_format[df['city'].unique()[0]] = d
-        return city_level_format
+            dfs = [df[df.city == city]
+                   for city in df[df.country == country].city.unique()]
+            city_level_format = {}
+            for df in dfs:
+                d = {}
+                for col in cols:
+                    d[col] = list(df[col].value_counts() / df.shape[0])
+                city_level_format[df['city'].unique()[0]] = d
+            return city_level_format
 
     def lieberson_index(self, d):
         """Measure Lieberson's Aw diversity within a population. Aw receives a
@@ -119,43 +128,43 @@ class Indicators():
 def main():
     data = pd.read_csv(sys.argv[1])
     indicators = Indicators(data)
-
-    print('CITY -- GENDER')
-    gender_diversity = indicators.people_diversity('city', 'gender')
-    print(gender_diversity)
-    print()
-
-    print('DEGREE -- GENDER')
+    #
+    # print('CITY -- GENDER')
+    # gender_diversity = indicators.people_diversity('city', 'gender')
+    # print(gender_diversity)
+    # print()
+    #
+    # print('DEGREE -- GENDER')
     degree_diversity = indicators.people_diversity('degree_type', 'gender')
     print(degree_diversity)
-
-    print('GENDER -- DEGREE')
-    gd_div = indicators.people_diversity('gender', 'degree_type')
-    print(gd_div.where(gd_div > 0.02).dropna())
-    print()
-
-    print('CITY -- JOB TYPE -- GENDER')
-    role_comp_div = indicators.city_role_company('city', 'job_type', 'gender')
-    print(role_comp_div)
-    print()
-
-    print('CITY -- CATEGORY_GROUP_LIST -- GENDER')
-    cat_comp_div = indicators.city_role_company('city',
-                                                'category_group_list',
-                                                'gender')
-    print(cat_comp_div)
-    print()
-
-    print('LOCAL STUDENTS')
-    print(indicators.home_study('United Kingdom'))
-    print()
-
-    print('LIEBERSON INDEX')
-    print(indicators.lieberson_index(
-                                     indicators.lieberson_format(
-                                        ['gender', 'race'], 'United Kingdom')
-                                        ))
-    print()
+    #
+    # print('GENDER -- DEGREE')
+    # gd_div = indicators.people_diversity('gender', 'degree_type')
+    # print(gd_div.where(gd_div > 0.02).dropna())
+    # print()
+    #
+    # print('CITY -- JOB TYPE -- GENDER')
+    # role_comp_div = indicators.city_role_company('city', 'job_type', 'gender')
+    # print(role_comp_div)
+    # print()
+    #
+    # print('CITY -- CATEGORY_GROUP_LIST -- GENDER')
+    # cat_comp_div = indicators.city_role_company('city',
+    #                                             'category_group_list',
+    #                                             'gender')
+    # print(cat_comp_div)
+    # print()
+    #
+    # print('LOCAL STUDENTS')
+    # print(indicators.home_study('United Kingdom'))
+    # print()
+    #
+    # print('LIEBERSON INDEX')
+    # print(indicators.lieberson_index(
+    #                                  indicators.lieberson_format(
+    #                                     ['gender', 'race'], 'United Kingdom')
+    #                                     ))
+    # print()
 
 
 if __name__ == '__main__':
