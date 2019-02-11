@@ -1,5 +1,6 @@
 import sys
 import pandas as pd
+from skbio.diversity.alpha import simpson
 
 
 class Indicators():
@@ -114,12 +115,14 @@ class Indicators():
         df = df[(df.is_current == 1) & (df.primary_role == 'company')]
         return df.groupby(list(args)).count()['person_id']
 
-    def home_study(self, country):
+    def home_study(self, country, thresh=100):
         """Find the proportion of people who studied at the same location of
             their work.
 
         Args:
             country (:obj:`str`): Country name.
+            thresh (:obj:`int`): Filter out instances with a count lower than
+                the threshold.
 
         Return:
             (:obj:`float`): Percentage of people.
@@ -131,10 +134,13 @@ class Indicators():
                                                .unique().shape[0]
 
         all_universities = df.person_id.unique().shape[0]
-        return (local_uni / all_universities) * 100
+        if all_universities > thresh:
+            return (local_uni / all_universities) * 100
+        else:
+            return 0
 
-    def lieberson_format(self, cols, country_level=False, city_level=False,
-                         country=None):
+    def lieberson_format(self, cols, thresh, country_level=False,
+                         city_level=False, country=None):
         """Format data for Lieberson index.
 
         Args:
@@ -149,11 +155,14 @@ class Indicators():
             (:obj:`dict` of :obj:`list`)
 
         """
-        df = self.data[self.data.primary_role == 'company'] \
-                 .drop_duplicates('person_id')
+        df = self.data[(self.data.primary_role == 'company')
+                       & (self.data.gender.isin(['male', 'female']))] \
+                 .drop_duplicates(['org_id', 'person_id'])
         if country_level:
             dfs = [df[df.country == country]
-                   for country in df.country.unique()]
+                   for country in df.country.unique()
+                   if df[df.country == country].person_id
+                                               .unique().shape[0] > thresh]
             country_level_format = {}
             for df in dfs:
                 d = {}
@@ -164,7 +173,9 @@ class Indicators():
 
         if city_level and country is not None:
             dfs = [df[df.city == city]
-                   for city in df[df.country == country].city.unique()]
+                   for city in df[df.country == country].city.unique()
+                   if df[df.city == city].person_id
+                                         .unique().shape[0] > thresh]
             city_level_format = {}
             for df in dfs:
                 d = {}
@@ -204,6 +215,25 @@ class Indicators():
         yk = sum([sum([v**2 for v in vals]) for vals in d.values()])
         aw = 1 - yk / len(d)
         return aw
+
+    def simpson_index(self, type, thresh, country=None, country_level=False):
+        df = self.data[(self.data.primary_role == 'company')
+                       & (self.data.gender.isin(['male', 'female']))] \
+                 .drop_duplicates(['org_id', 'person_id'])
+
+        if country_level:
+            dfs = {country: df[df.country == country][type].value_counts()
+                   for country in df.country.unique()
+                   if df[df.country == country].person_id
+                                               .unique().shape[0] > thresh}
+            return {k: simpson(v) for k, v in dfs.items()}
+        else:
+            df = df[df.country == country]
+            dfs = {city: df[df.city == city][type].value_counts()
+                   for city in df.city.unique()
+                   if df[df.city == city].person_id
+                                         .unique().shape[0] > thresh}
+            return {k: simpson(v) for k, v in dfs.items()}
 
 
 def main():
