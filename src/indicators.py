@@ -10,19 +10,22 @@ class Indicators():
 
     def degree_diversity(self, *args, city_level=False, country=None,
                          thresh=25):
-        """Find the gender / ethnic diversity of the people that are currently
-        working in an area.
+        """Find the gender / ethnic diversity for different degree types.
 
         Args:
             thresh (:obj:`int`): Filter out instances with a count lower than
                 the threshold.
-            *args: Usually location (city, country, continent), gender or
-                ethnicity and degree type. Note that the first argument is used
-                to normalise the data.
+            city_level (:obj:`bool`): If True, the output shows the
+                diversity on city level. Defaults to False.
+            country (:obj:`str` | :obj:`NoneType`): Country name. Needed only
+                when city_level is True. Defaults to None.
+            *args: Location (city, country, continent), degree type, gender or
+                ethnicity.
 
         Return:
-            div (:obj:`pandas.DataFrame`): A DataFrame grouped by the args
-                and reindexed based on the number of women/men in the cities.
+            (:obj:`pandas.DataFrame`): A DataFrame grouped by the args and
+                reindexed based on the number of women/men in the location. The
+                values are proportions.
 
         """
         df = self.data.dropna(subset=['person_id'])
@@ -53,8 +56,9 @@ class Indicators():
                 the data.
 
         Return:
-            div (:obj:`pandas.DataFrame`): A DataFrame grouped by the args
-                and reindexed based on the number of women/men in the cities.
+            (:obj:`pandas.DataFrame`): A DataFrame grouped by the args and
+                reindexed based on the number of women/men in the cities. The
+                values are proportions.
 
         """
         df = self.data[(self.data.is_current == 1)
@@ -69,7 +73,22 @@ class Indicators():
         return (nominator / denominator).reindex(idx, level=0) * 100
 
     def reindexing(self, thresh, location='country', country=None):
-        """"""
+        """Reindex a dataframe based on the population of the location. Note
+        that population is the number of unique person_id in a location.
+
+        Args:
+            thresh (:obj:`int`): Filter out instances with a count lower than
+                the threshold.
+            location (:obj:`str`): Shows the location based on which the
+                sorting will be made. It can be 'country' or 'city'.
+            country (:obj:`str` | :obj:`NoneType`): Country name. Needed only
+                when city_level is True. Defaults to None.
+
+        Return:
+            (:obj:`Pandas Index`): Array with city or country names sorted by
+                their populations (descending order).
+
+        """
         df = self.data[(self.data.is_current == 1)
                        & (self.data.primary_role == 'company')] \
                  .drop_duplicates('person_id')
@@ -81,7 +100,7 @@ class Indicators():
 
     def city_role_company(self, *args):
         """Count the number of women/men in each job type and every company
-            size.
+        size.
 
         Args:
             *args: Usually location (city, country, continent), gender or
@@ -94,12 +113,18 @@ class Indicators():
         df = self.data.dropna(subset=['person_id'])
         df = df[(df.is_current == 1) & (df.primary_role == 'company')]
         return df.groupby(list(args)).count()['person_id']
-        # return self.data[self.data.primary_role == 'company'] \
-        #            .drop_duplicates('person_id') \
-        #            .groupby(list(args)) \
-        #            .count()['person_id']
 
     def home_study(self, country):
+        """Find the proportion of people who studied at the same location of
+            their work.
+
+        Args:
+            country (:obj:`str`): Country name.
+
+        Return:
+            (:obj:`float`): Percentage of people.
+
+        """
         df = self.data[self.data.country == country]
         local_uni = df[df.institution_id
                          .isin(set(df.org_id))].person_id \
@@ -110,7 +135,20 @@ class Indicators():
 
     def lieberson_format(self, cols, country_level=False, city_level=False,
                          country=None):
-        """Format data for Lieberson index."""
+        """Format data for Lieberson index.
+
+        Args:
+            country_level (:obj:`bool`): If True, the output will be on country
+                level. Defaults to False.
+            city_level (:obj:`bool`): If True, the output will be on city
+                level. Defaults to False.
+            country (:obj:`str` | :obj:`NoneType`): Country name. Needed only
+                when city_level is True. Defaults to None.
+
+        Return:
+            (:obj:`dict` of :obj:`list`)
+
+        """
         df = self.data[self.data.primary_role == 'company'] \
                  .drop_duplicates('person_id')
         if country_level:
