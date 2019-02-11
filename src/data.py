@@ -104,7 +104,7 @@ def prepare_data():
                'employee_count', 'primary_role']].merge(
                                                 jobs[['person_id', 'org_id',
                                                       'job_id', 'is_current',
-                                                      'job_type']],
+                                                      'job_type']], how='left',
                                                 left_on='id',
                                                 right_on='org_id')
 
@@ -112,10 +112,10 @@ def prepare_data():
                             right_on='category_name')
 
     oj = oj.merge(categories[['organization_id', 'category_group_list']],
-                  left_on='id', right_on='organization_id')
+                  how='left', left_on='id', right_on='organization_id')
 
     ojp = oj.merge(people[['id', 'first_name', 'last_name', 'gender']],
-                   left_on='person_id', right_on='id')
+                   how='left', left_on='person_id', right_on='id')
 
     ojp.gender = ojp.gender.apply(lambda x: x if x != 'not_provided'
                                   else np.nan)
@@ -130,7 +130,7 @@ def prepare_data():
     ojpd = ojp.merge(degrees[['person_id', 'degree_type', 'degree_id',
                               'institution_id']],
                      how='left', left_on='id_y', right_on='person_id')
-    ojpd.drop(['person_id_x', 'person_id_y', 'organization_id'],
+    ojpd.drop(['person_id_x', 'person_id_y', 'organization_id', 'org_id'],
               axis=1, inplace=True)
     ojpd.rename(index=str, inplace=True, columns={'id_x': 'org_id',
                                                   'id_y': 'person_id'})
