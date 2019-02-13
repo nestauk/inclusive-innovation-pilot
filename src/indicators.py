@@ -113,7 +113,14 @@ class Indicators():
         """
         df = self.data.dropna(subset=['person_id'])
         df = df[(df.is_current == 1) & (df.primary_role == 'company')]
-        return df.groupby(list(args)).count()['person_id']
+        if len(args) > 2:
+            return df.groupby(list(args))['person_id'] \
+                     .count().groupby(level=[args[0], args[-1]]) \
+                     .transform(self.groupsum)
+        else:
+            return df.groupby(list(args))['person_id'] \
+                     .count().groupby(level=[args[0]]) \
+                     .transform(self.groupsum)
 
     def home_study(self, country, thresh=100):
         """Find the proportion of people who studied at the same location of
@@ -217,6 +224,20 @@ class Indicators():
         return aw
 
     def simpson_index(self, type, thresh, country=None, country_level=False):
+        """
+
+        Args:
+            thresh (:obj:`int`): Filter out instances with a count lower than
+                the threshold.
+            country_level (:obj:`bool`): If True, the output will be on country
+                level. Defaults to False.
+            country (:obj:`str` | :obj:`NoneType`): Country name. Needed only
+                when city_level is True. Defaults to None.
+
+        Return:
+            (:obj:`dict`): Simpson diversity.
+
+        """
         df = self.data[(self.data.primary_role == 'company')
                        & (self.data.gender.isin(['male', 'female']))] \
                  .drop_duplicates(['org_id', 'person_id'])
