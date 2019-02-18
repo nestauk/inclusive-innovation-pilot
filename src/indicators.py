@@ -116,11 +116,11 @@ class Indicators():
         if len(args) > 2:
             return df.groupby(list(args))['person_id'] \
                      .count().groupby(level=[args[0], args[-1]]) \
-                     .transform(self.groupsum)
+                     .transform(self.groupsum) * 100
         else:
             return df.groupby(list(args))['person_id'] \
                      .count().groupby(level=[args[0]]) \
-                     .transform(self.groupsum)
+                     .transform(self.groupsum) * 100
 
     def home_study(self, country, thresh=100):
         """Find the proportion of people who studied at the same location of
@@ -195,6 +195,7 @@ class Indicators():
         """Measure Lieberson's Aw diversity within a population. Aw receives a
         set of variables V with p categories and uses the proportions Yk in
         each category to measure the diversity of the set.
+
         Example:
         d = {
          'a': [.06, .4, .44, .1],
