@@ -99,9 +99,12 @@ def prepare_data():
         org_ids = pickle.load(h)
 
     orgs = orgs[(orgs.id.isin(org_ids))]
-
+    orgs = orgs.merge(geo, how='left', left_on='location_id', right_on='id')
+    orgs.rename(index=str, inplace=True, columns={'id_x': 'id',
+                'country_y': 'country', 'city_y': 'city'})
     oj = orgs[['id', 'funding_total_usd', 'founded_on', 'city', 'country',
-               'employee_count', 'primary_role']].merge(
+               'employee_count', 'primary_role', 'country_alpha_2',
+               'country_alpha_3', 'continent', 'latitude', 'longitude']].merge(
                                                 jobs[['person_id', 'org_id',
                                                       'job_id', 'is_current',
                                                       'job_type']], how='left',
@@ -123,10 +126,6 @@ def prepare_data():
     ojp = ethnicolr.pred_wiki_name(df=ojp, lname_col='last_name',
                                    fname_col='first_name')
     ojp.drop(ethnicities, axis=1, inplace=True)
-    # # Binarize ethnicities.
-    # for idx, _ in ojp.iterrows():
-    #     ojp.loc[idx, ethnicities] = bin_values(ojp.loc[idx, ethnicities])
-
     ojpd = ojp.merge(degrees[['person_id', 'degree_type', 'degree_id',
                               'institution_id']],
                      how='left', left_on='id_y', right_on='person_id')
@@ -138,7 +137,7 @@ def prepare_data():
     ojpd.degree_type = ojpd.degree_type.apply(change_degree_type)
     ojpd.employee_count = ojpd.employee_count.apply(company_size)
 
-    ojpd.to_csv('../data/processed/ojpd_eu.csv', index=False)
+    ojpd.to_csv('../data/processed/ojpd_scotland_v2.csv', index=False)
     print(ojpd.shape)
 
 
