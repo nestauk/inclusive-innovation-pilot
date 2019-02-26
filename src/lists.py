@@ -4,7 +4,7 @@ postgrad = [
  "Master's Degree", 'M.Sc.', "Master's", "Master's degree", 'Masters Degree',
  'M.Eng', 'MCA', 'M.Eng.', 'M.A.', 'Master Degree', 'MEng', 'Master of Arts',
  'M.A', 'MSE', 'Masters Degree', 'Msc', 'MPA', 'MFA', 'LLM', 'MPhil', 'MSc.',
- 'ME', 'Masters of Science', 'MSEE'
+ 'ME', 'Masters of Science', 'MSEE', 'M.Phil'
  ]
 
 undergrad = [
@@ -23,7 +23,7 @@ undergrad = [
 
 phil = [
  'Ph.D', 'Ph.D.', 'MD', 'Doctor of Philosophy', 'M.D.', 'Doctorate',
- 'Phd', 'M.Phil', 'Doctor of Philosophy (Ph.D.)', 'M.D',
+ 'Phd', 'Doctor of Philosophy (Ph.D.)', 'M.D',
  'Doctor of Philosophy (PhD)'
  ]
 
