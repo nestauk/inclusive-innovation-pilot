@@ -137,7 +137,7 @@ def prepare_data():
     ojpd.degree_type = ojpd.degree_type.apply(change_degree_type)
     ojpd.employee_count = ojpd.employee_count.apply(company_size)
 
-    ojpd.to_csv('../data/processed/ojpd_eu_v2.csv', index=False)
+    ojpd.to_csv('../data/processed/ojpd_eu_v3.csv', index=False)
     print(ojpd.shape)
 
 
